@@ -5,7 +5,7 @@ using Printf
 using PyPlot
 
 # Unoptimized implementation of PIPG for MPC with LTI dynamics and static state and input cost
-# Can support box and ball constraints on state and input
+# Supports box and ball constraints on state and input
 
 struct MPC
     #Problem parameters
@@ -119,7 +119,7 @@ let
     B = [0.5*dt^2;dt]
     B = reshape(B,length(B),1)
     Q = Diagonal([1.0,1.0])
-    R = Diagonal([10.0])
+    R = Diagonal([1.0])
 
     # Need T-1 A and B matrices for LTV
     # Make Q_packed and R_packed vertically concatanated Q_t and R_t

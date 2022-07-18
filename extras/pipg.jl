@@ -38,7 +38,7 @@ struct MPC
     umax::Float64
 
     #Add in support for xT
-    function MPC(A,B,Q,R,T,x0,umax)
+    function MPC(A,B,Q,R,T,x0,xT,umax)
         nx = size(Q)[1]
         nu = size(R)[1]
 
@@ -60,10 +60,11 @@ struct MPC
 
         X = zeros(T+1,nx)
         U = zeros(T,nu)
-        V = zeros(T+1,nx)
+        V = zeros(T+2,nx)
         W = zeros(T+1,nx)
 
         X[1,:] = x0
+        X[T+1,:] = xT
 
         new(A,B,Q,R,T,X,U,V,W,nx,nu,η_1,η_2,η_3,umax)
     end
@@ -90,25 +91,28 @@ function solve!(p::MPC)
         α = 2/((k+1)*p.η_1+2*p.η_2)
         β = (k+1)*p.η_1/(2*p.η_3)
         obj = 0
-        for t=2:p.T
+        for t=2:p.T+1
             p.V[t,:] = p.W[t,:] + β * (p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])
             p.U[t-1,:] = proj_ball(p.U[t-1,:] - α * (p.R * p.U[t-1,:] - p.B' * p.V[t,:]), p.umax)
-            p.X[t,:] = proj_box(p.X[t,:] - α * (p.Q*(p.X[t,:]) + p.V[t,:] - p.A' * p.V[t+1,:]),[0.0;-Inf],[Inf,Inf])
+            if t != p.T+1
+                p.X[t,:] = proj_box(p.X[t,:] - α * (p.Q*(p.X[t,:]) + p.V[t,:] - p.A' * p.V[t+1,:]),[0.0;-Inf],[Inf,Inf])
+            end
             p.W[t,:] = p.W[t,:] + β * (p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])
             e[t] = norm(p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])^2
             obj += p.X[t,:]'*p.Q*p.X[t,:] + p.U[t-1,:]'*p.R*p.U[t-1,:]
         end
-        if (mod(k,1)==0)
+        if (mod(k,50)==0)
             @printf("%3d   %10.3e  %9.2e\n",
             k, obj, sqrt(sum(e)))
         end
     end
 end
 let
-    T = 100  #time horizon
+    T = 200  #time horizon
     N = 2    #number of states
     dt = 0.1
     x0 = [10;0]
+    xT = [1.0;0]
     umax = 0.1
 
     A = [1 dt; 0 1]
@@ -120,7 +124,7 @@ let
     # Need T-1 A and B matrices for LTV
     # Make Q_packed and R_packed vertically concatanated Q_t and R_t
 
-    mpc = MPC(A,B,Q,R,T,x0,umax)
+    mpc = MPC(A,B,Q,R,T,x0,xT,umax)
 
     solve!(mpc)
     pygui(true)

@@ -2,7 +2,7 @@ using LinearAlgebra
 using SparseArrays
 using IterativeSolvers
 using Printf
-using Plots
+using PyPlot
 
 # Unoptimized implementation of PIPG for MPC with LTI dynamics and static state and input cost
 # Can support box and ball constraints on state and input
@@ -81,7 +81,7 @@ function proj_ball(x::Array{Float64,1},ρ::Float64)
     end
 end
 function solve!(p::MPC)
-    kmax = 1000
+    kmax = 10000
     e = zeros(p.T+1)
     println("iter     objv       |Gx-g|\n")
     println("-----------------------------\n")
@@ -93,7 +93,7 @@ function solve!(p::MPC)
         for t=2:p.T
             p.V[t,:] = p.W[t,:] + β * (p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])
             p.U[t-1,:] = proj_ball(p.U[t-1,:] - α * (p.R * p.U[t-1,:] - p.B' * p.V[t,:]), p.umax)
-            p.X[t,:] = p.X[t,:] - α * (p.Q*(p.X[t,:]) + p.V[t,:] - p.A' * p.V[t+1,:])
+            p.X[t,:] = proj_box(p.X[t,:] - α * (p.Q*(p.X[t,:]) + p.V[t,:] - p.A' * p.V[t+1,:]),[0.0;-Inf],[Inf,Inf])
             p.W[t,:] = p.W[t,:] + β * (p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])
             e[t] = norm(p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])^2
             obj += p.X[t,:]'*p.Q*p.X[t,:] + p.U[t-1,:]'*p.R*p.U[t-1,:]
@@ -105,7 +105,7 @@ function solve!(p::MPC)
     end
 end
 let
-    T = 100   #time horizon
+    T = 100  #time horizon
     N = 2    #number of states
     dt = 0.1
     x0 = [10;0]
@@ -123,6 +123,17 @@ let
     mpc = MPC(A,B,Q,R,T,x0,umax)
 
     solve!(mpc)
-    plot(mpc.X[:,1])
-    # plot(mpc.U)
+    pygui(true)
+
+    plt.figure()
+    plt.plot(mpc.X[:,1])
+    plt.title("State Trajectory")
+    plt.grid(true)
+
+    plt.figure()
+    plt.plot(mpc.U)
+    plt.title("Input Trajectory")
+    plt.grid(true)
+    plt.show()
+
 end

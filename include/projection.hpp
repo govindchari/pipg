@@ -1,4 +1,7 @@
+#pragma once
 #include "Eigen/Dense"
+#define EIGEN_RUNTIME_NO_MALLOC
+
 
 using namespace Eigen;
 

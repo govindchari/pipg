@@ -1,18 +1,24 @@
 #include <iostream>
-
-#include "projection.hpp"
 #include "Eigen/Dense"
 
-int main(){
-    double r = 1;
-    VectorXd x(2);
-    VectorXd l(2);
-    VectorXd u(2);
-   
-    l << 0, 0;
-    u << 1, 1;
-    x << -1, 2;
+#include "pipg.hpp"
 
-    project_box(x, l, u);
-    std::cout << x << std::endl;
+int main()
+{
+    int T = 10;
+    size_t nx = 2;
+    size_t nu = 2;
+    MatrixXd Q0(nx, nx);
+    MatrixXd R0(nu, nu);
+    Q0 << 1, 2, 3, 4;
+    R0 << 5, 6, 7, 8;
+
+    MPC p(T, nx, nu);
+
+    for (size_t i = 0; i < T; i++)
+    {
+        p.addQ(i, Q0);
+        p.addR(i, R0);
+    }
+    p.updateEta1();
 }

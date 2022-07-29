@@ -52,6 +52,7 @@ public:
     void addB(const size_t t, const MatrixXd Bin);
     void addQ(const size_t t, const MatrixXd Qin);
     void addR(const size_t t, const MatrixXd Rin);
+    void addIC(const VectorXd x0);
     // void addBallConstraint(const size_t t, const enum variable, const double r);
     // void addBoxConstraint(const size_t t, const enum variable, const VectorXd l, const VectorXd u);
     // void addHalfspaceConstraint(const size_t t, const enum variable, const VectorXd c, const double a);

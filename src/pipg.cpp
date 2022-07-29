@@ -97,6 +97,11 @@ void MPC::addR(const size_t t, const MatrixXd Rin)
     eta1_outdated = true;
     eta2_outdated = true;
 }
+void MPC::addIC(const VectorXd x0)
+{
+    X[0] = x0;
+}
+
 // void MPC::addBallConstraint(const size_t t, const enum variable, const double r){
 
 // }
@@ -124,7 +129,19 @@ void MPC::solve(bool verbose)
     {
         updateEta3();
     }
-    for (size_t i = 0; i < 10000; i++)
+    for (size_t k = 0; k < 10000; k++)
     {
+        auto a = 2 / ((k + 1) * eta1 + 2 * eta2);
+        auto b = (k + 1) * eta1 / (2 * eta3);
+        for (size_t t = 1; t < T + 1; t++)
+        {
+            V[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
+            U[t - 1] = proj_ball(U[t - 1] - a * (R[t - 1] * U[t - 1] - B[t - 1].transpose() * V[t]), umax);
+            if (t != T + 1)
+            {
+                X[t] = proj_box(X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]), [0.0; - Inf], [ Inf, Inf ]);
+            }
+            W[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
+        }
     }
 }

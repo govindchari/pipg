@@ -50,7 +50,6 @@ void MPC::updateEta1()
 {
     std::fill(X.begin(), X.end(), VectorXd::Random(nx));
     std::fill(U.begin(), U.end(), VectorXd::Random(nu));
-    // Add convergence criteria
     for (size_t i = 0; i < 10; i++)
     {
         for (size_t t = 0; t < T; t++)
@@ -136,10 +135,10 @@ void MPC::solve(bool verbose)
         for (size_t t = 1; t < T + 1; t++)
         {
             V[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
-            U[t - 1] = proj_ball(U[t - 1] - a * (R[t - 1] * U[t - 1] - B[t - 1].transpose() * V[t]), umax);
+            U[t - 1] = U[t - 1] - a * (R[t - 1] * U[t - 1] - B[t - 1].transpose() * V[t]);
             if (t != T + 1)
             {
-                X[t] = proj_box(X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]), [0.0; - Inf], [ Inf, Inf ]);
+                X[t] = X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]);
             }
             W[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
         }

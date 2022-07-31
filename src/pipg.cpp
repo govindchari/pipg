@@ -31,7 +31,8 @@ MPC::MPC(const size_t T_horizon, const size_t nxin, const size_t nuin)
     eta2_outdated = false;
     eta3_outdated = false;
 
-    WORKSPACE ws(nx, nu);
+    WORKSPACE ws(nx, nu, T);
+    TOLERANCE tol();
 }
 void MPC::printQR()
 {
@@ -48,26 +49,48 @@ void MPC::printQR()
 }
 void MPC::updateEta1()
 {
-    std::fill(X.begin(), X.end(), VectorXd::Random(nx));
-    std::fill(U.begin(), U.end(), VectorXd::Random(nu));
-    for (size_t i = 0; i < 10; i++)
+    auto Xc = X;
+    auto Uc = U;
+    std::fill(Xc.begin(), Xc.end(), VectorXd::Random(nx).normalized());
+    std::fill(Uc.begin(), Uc.end(), VectorXd::Random(nu).normalized());
+
+    // Stores max eigenvalue estimates of Q_t and R_t
+    ws.vec_T1 = VectorXd::Zero(T);
+    ws.vec_T2 = VectorXd::Zero(T);
+
+    size_t iter = 1;
+    bool converged = false;
+    double error = std::numeric_limits<double>::max();
+    while (!converged && iter < tol.pow_max_iter)
     {
+        error = std::numeric_limits<double>::max();
         for (size_t t = 0; t < T; t++)
         {
-            ws.vec_nx = Q[t] * X[t + 1];
-            ws.d = ws.vec_nx.norm() / X[t + 1].norm();
-            eta1 = std::max(ws.d, eta1);
-            X[t + 1] = ws.vec_nx / ws.vec_nx.norm();
-            ws.vec_nu = R[t] * U[t];
-            ws.d = ws.vec_nu.norm() / U[t].norm();
-            eta1 = std::max(ws.d, eta1);
-            U[t] = ws.vec_nu / ws.vec_nu.norm();
+            ws.vec_nx = Q[t] * Xc[t + 1]; // Corresponds to Q_t * X_t for t > 0 (no Q_0)
+            ws.vec_T1[t] = ws.vec_nx.norm() / Xc[t + 1].norm();
+            error = std::min(error, Xc[t + 1].dot(ws.vec_nx.normalized()));
+            Xc[t + 1] = ws.vec_nx.normalized();
+            ws.vec_nu = R[t] * Uc[t];
+            ws.vec_T2[t] = ws.vec_nu.norm() / Uc[t].norm();
+            error = std::min(error, U[t].dot(ws.vec_nu.normalized()));
+            Uc[t] = ws.vec_nu.normalized();
         }
+        converged = error > 1 - tol.pow_tol;
+        iter++;
     }
+    eta1 = std::max(ws.vec_T1.maxCoeff(), ws.vec_T2.maxCoeff());
     eta1_outdated = false;
 }
 void MPC::updateEta2()
 {
+    // Uses power method shifted by lambda_max, so needs eta_1
+    if (eta1_outdated)
+    {
+        updateEta1();
+    }
+    else
+    {
+    }
     eta2_outdated = false;
 }
 void MPC::updateEta3()

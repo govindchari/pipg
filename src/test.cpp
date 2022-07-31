@@ -1,6 +1,5 @@
 #include <iostream>
 #include "Eigen/Dense"
-
 #include "pipg.hpp"
 
 int main()

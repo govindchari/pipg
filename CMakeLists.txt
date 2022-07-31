@@ -3,6 +3,7 @@ project(PIPG VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_FLAGS "-O3")
+SET(CMAKE_CXX_FLAGS "-Wall")
 
 #add_library(PIPG SHARED)
 add_executable(PIPG src/test.cpp src/pipg.cpp)

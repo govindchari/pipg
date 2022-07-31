@@ -40,6 +40,7 @@ private:
 
     // Workspace
     WORKSPACE ws;
+    TOLERANCE tol;
 
     // void updateEta1();
     void updateEta2();

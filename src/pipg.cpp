@@ -87,11 +87,46 @@ void MPC::updateEta2()
     if (eta1_outdated)
     {
         updateEta1();
+        updateEta2();
     }
     else
     {
+        auto Xc = X;
+        auto Uc = U;
+        std::fill(Xc.begin(), Xc.end(), VectorXd::Random(nx).normalized());
+        std::fill(Uc.begin(), Uc.end(), VectorXd::Random(nu).normalized());
+
+        // Stores max eigenvalue estimates of Q_t-lambda_max*I and R_t-lambda_max
+        ws.vec_T3 = VectorXd::Zero(T);
+        ws.vec_T4 = VectorXd::Zero(T);
+
+        size_t iter = 1;
+        bool converged = false;
+        double error = std::numeric_limits<double>::max();
+        auto Inx = MatrixXd::Identity(nx, nx);
+        auto Inu = MatrixXd::Identity(nu, nu);
+        while (!converged && iter < tol.pow_max_iter)
+        {
+            error = std::numeric_limits<double>::max();
+            for (size_t t = 0; t < T; t++)
+            {
+                ws.vec_nx = (Q[t] - ws.vec_T1[t] * Inx) * Xc[t + 1]; // Corresponds to Q_t * X_t for t > 0 (no Q_0)
+                ws.vec_T3[t] = ws.vec_nx.norm() / Xc[t + 1].norm();
+                error = std::min(error, Xc[t + 1].dot(ws.vec_nx.normalized()));
+                Xc[t + 1] = ws.vec_nx.normalized();
+                ws.vec_nu = (R[t] - ws.vec_T2[t] * Inu) * Uc[t];
+                ws.vec_T4[t] = ws.vec_nu.norm() / Uc[t].norm();
+                error = std::min(error, U[t].dot(ws.vec_nu.normalized()));
+                Uc[t] = ws.vec_nu.normalized();
+            }
+            converged = error > 1 - tol.pow_tol;
+            iter++;
+        }
+        ws.vec_T3 = -ws.vec_T3 + ws.vec_T1;
+        ws.vec_T4 = -ws.vec_T4 + ws.vec_T2;
+        eta2 = std::min(ws.vec_T3.minCoeff(), ws.vec_T4.minCoeff());
+        eta2_outdated = false;
     }
-    eta2_outdated = false;
 }
 void MPC::updateEta3()
 {

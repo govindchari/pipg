@@ -10,7 +10,8 @@ struct TOLERANCE
     size_t pow_max_iter;
     TOLERANCE()
     {
-        pow_tol = 1e-12;
+        // Angle between two iterations of power method must be within acos(1-pow_tol) degrees
+        pow_tol = 1e-10;
         pow_max_iter = 100;
     };
 };
@@ -20,7 +21,8 @@ struct WORKSPACE
     VectorXd vec_nu;
     VectorXd vec_T1;
     VectorXd vec_T2;
-    double d;
+    VectorXd vec_T3;
+    VectorXd vec_T4;
     WORKSPACE(){};
     WORKSPACE(size_t nx, size_t nu, size_t T)
     {
@@ -28,6 +30,7 @@ struct WORKSPACE
         vec_nu = VectorXd::Zero(nu);
         vec_T1 = VectorXd::Zero(T);
         vec_T2 = VectorXd::Zero(T);
-        d = 0.0;
+        vec_T3 = VectorXd::Zero(T);
+        vec_T4 = VectorXd::Zero(T);
     }
 };

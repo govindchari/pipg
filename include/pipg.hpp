@@ -42,12 +42,11 @@ private:
     WORKSPACE ws;
     TOLERANCE tol;
 
-    // void updateEta1();
+    void updateEta1();
     void updateEta2();
     void updateEta3();
 
 public:
-    void updateEta1();
     void printQR();
     void addA(const size_t t, const MatrixXd Ain);
     void addB(const size_t t, const MatrixXd Bin);

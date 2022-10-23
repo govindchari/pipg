@@ -13,16 +13,16 @@ namespace Constraint
         VectorXd l;
         VectorXd u;
         size_t t;
-        unsigned char var;
-        Box(const VectorXd lin, const VectorXd uin, const size_t tin, const unsigned char varin) : l(lin), u(uin), t(tin), var(varin) {}
+        char var;
+        Box(const VectorXd lin, const VectorXd uin, const size_t tin, const char varin) : l(lin), u(uin), t(tin), var(varin) {}
     };
 
     struct Ball
     {
         double r;
         size_t t;
-        unsigned char var;
-        Ball(const double rin, const size_t tin, const unsigned char varin) : r(rin), t(tin), var(varin) {}
+        char var;
+        Ball(const double rin, const size_t tin, const char varin) : r(rin), t(tin), var(varin) {}
     };
 
     struct Halfspace
@@ -30,8 +30,8 @@ namespace Constraint
         VectorXd c;
         double a;
         size_t t;
-        unsigned char var;
-        Halfspace(const VectorXd cin, const double ain, const size_t tin, const unsigned char varin) : c(cin), a(ain), t(tin), var(varin) {}
+        char var;
+        Halfspace(const VectorXd cin, const double ain, const size_t tin, const char varin) : c(cin), a(ain), t(tin), var(varin) {}
     };
 
 }

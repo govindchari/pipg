@@ -9,6 +9,8 @@ int main()
     size_t nu = 1;
     double dt = 0.1;
     double umax = 0.1;
+    VectorXd uvec(1);
+    uvec << 0.1;
     MatrixXd A(nx, nx);
     MatrixXd B(nx, 1);
     VectorXd Q(nx);
@@ -30,7 +32,7 @@ int main()
         p.addR(i, R);
         p.addA(i, A);
         p.addB(i, B);
-        p.addBallConstraint(i, 'x', umax);
+        p.addBoxConstraint(i, 'u', -uvec, uvec);
     }
     p.addQ(T, Q);
     p.addIC(x0);
@@ -38,9 +40,17 @@ int main()
     p.solve();
 
     auto X = p.getState();
+    auto U = p.getControl();
 
     std::cout << "[";
     for (auto x : X)
+    {
+        std::cout << x[0] << ", ";
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << "[";
+    for (auto x : U)
     {
         std::cout << x[0] << ", ";
     }

@@ -64,9 +64,9 @@ public:
     void addQ(const size_t t, const VectorXd Qin);
     void addR(const size_t t, const VectorXd Rin);
     void addIC(const VectorXd x0);
-    void addBallConstraint(const size_t t, const unsigned char variable, const double r);
-    void addBoxConstraint(const size_t t, const unsigned char variable, const VectorXd l, const VectorXd u);
-    void addHalfspaceConstraint(const size_t t, const unsigned char variable, const VectorXd c, const double a);
+    void addBallConstraint(const size_t t, const char variable, const double r);
+    void addBoxConstraint(const size_t t, const char variable, const VectorXd l, const VectorXd u);
+    void addHalfspaceConstraint(const size_t t, const char variable, const VectorXd c, const double a);
     void solve();
     void solve(bool verbose);
     std::vector<VectorXd> getState();

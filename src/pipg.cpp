@@ -8,7 +8,7 @@ MPC::MPC(const size_t T_horizon, const size_t nxin, const size_t nuin)
     nu = nuin;
     A.resize(T + 1); // Of length T+1 because A_T = 0 (dummy variable for alg to work)
     B.resize(T);
-    Q.resize(T); // Of length T+1 since Q_0 is not of meaning (waste of space tbh)
+    Q.resize(T);
     R.resize(T);
     X.resize(T + 1);
     U.resize(T);
@@ -219,35 +219,48 @@ void MPC::addIC(const VectorXd x0)
     assert(MPC::nx == std::make_unsigned_t<int>(x0.rows()));
     X[0] = x0;
 }
-void MPC::addBoxConstraint(const size_t t, const unsigned char variable, const VectorXd l, const VectorXd u)
+void MPC::addBoxConstraint(const size_t t, const char variable, const VectorXd l, const VectorXd u)
 {
+    assert(variable == 'x' || variable == 'u');
     assert(l.rows() == u.rows());
-    assert(MPC::nx == std::make_unsigned_t<int>(l.rows()));
-    assert(MPC::nx == std::make_unsigned_t<int>(u.rows()));
+    if (variable == 'x')
+    {
+        assert(MPC::nx == std::make_unsigned_t<int>(l.rows()));
+        assert(MPC::nx == std::make_unsigned_t<int>(u.rows()));
+    }
+    if (variable == 'u')
+    {
+        assert(MPC::nu == std::make_unsigned_t<int>(l.rows()));
+        assert(MPC::nu == std::make_unsigned_t<int>(u.rows()));
+    }
     assert(l.cwiseMin(u) == l);
 
-    assert(variable == 'x' || variable == 'u');
-
-    Constraint::Box con(l, u, variable, t);
+    Constraint::Box con(l, u, t, variable);
     MPC::box_constraints.push_back(con);
 }
-void MPC::addBallConstraint(const size_t t, const unsigned char variable, const double r)
+void MPC::addBallConstraint(const size_t t, const char variable, const double r)
 {
     assert(r > 0);
 
     assert(variable == 'x' || variable == 'u');
 
-    Constraint::Ball con(r, variable, t);
+    Constraint::Ball con(r, t, variable);
     MPC::ball_constraints.push_back(con);
 }
-void MPC::addHalfspaceConstraint(const size_t t, unsigned char variable, const VectorXd c, const double a)
+void MPC::addHalfspaceConstraint(const size_t t, const char variable, const VectorXd c, const double a)
 {
-    assert(MPC::nx == std::make_unsigned_t<int>(c.rows()));
-    assert(a != 0);
-
     assert(variable == 'x' || variable == 'u');
+    assert(a != 0);
+    if (variable == 'x')
+    {
+        assert(MPC::nx == std::make_unsigned_t<int>(c.rows()));
+    }
+    if (variable == 'u')
+    {
+        assert(MPC::nu == std::make_unsigned_t<int>(c.rows()));
+    }
 
-    Constraint::Halfspace con(c, a, variable, t);
+    Constraint::Halfspace con(c, a, t, variable);
     MPC::halfspace_constraints.push_back(con);
 }
 void MPC::projectAll()
@@ -323,27 +336,18 @@ void MPC::solve(bool verbose)
         double obj = 0;
         for (size_t t = 1; t < T + 1; t++)
         {
-            // V[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
-            // U[t - 1] = U[t - 1] - a * (R[t - 1].asDiagonal() * U[t - 1] - B[t - 1].transpose() * V[t]);
-            // X[t] = X[t] - a * (Q[t - 1].asDiagonal() * X[t] + V[t] - A[t].transpose() * V[t + 1]);
-            // projectAll();
-            // // Only for TC
-            // // if (t != T + 1)
-            // // {
-            // //     X[t] = X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]);
-            // // }
-            // W[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
-            // e[t] = (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]).squaredNorm();
-            // obj += ((X[t].array() * Q[t - 1].array() * X[t].array()).sum() + (U[t - 1].array() * R[t - 1].array() * U[t - 1].array()).sum());
-
-            // LTI
-            V[t] = W[t] + b * (X[t] - A[1] * X[t - 1] - B[1] * U[t - 1]);
-            U[t - 1] = U[t - 1] - a * (R[1].asDiagonal() * U[t - 1] - B[1].transpose() * V[t]);
-            X[t] = X[t] - a * (Q[1].asDiagonal() * X[t] + V[t] - A[1].transpose() * V[t + 1]);
+            V[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
+            U[t - 1] = U[t - 1] - a * (R[t - 1].asDiagonal() * U[t - 1] - B[t - 1].transpose() * V[t]);
+            X[t] = X[t] - a * (Q[t - 1].asDiagonal() * X[t] + V[t] - A[t].transpose() * V[t + 1]);
             projectAll();
-            W[t] = W[t] + b * (X[t] - A[1] * X[t - 1] - B[1] * U[t - 1]);
-            e[t] = (X[t] - A[1] * X[t - 1] - B[1] * U[t - 1]).squaredNorm();
-            obj += ((X[t].array() * Q[1].array() * X[t].array()).sum() + (U[t - 1].array() * R[1].array() * U[t - 1].array()).sum());
+            // Only for TC
+            // if (t != T + 1)
+            // {
+            //     X[t] = X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]);
+            // }
+            W[t] = W[t] + b * (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]);
+            e[t] = (X[t] - A[t - 1] * X[t - 1] - B[t - 1] * U[t - 1]).squaredNorm();
+            obj += ((X[t].array() * Q[t - 1].array() * X[t].array()).sum() + (U[t - 1].array() * R[t - 1].array() * U[t - 1].array()).sum());
         }
         if (k % 50 == 0)
         {

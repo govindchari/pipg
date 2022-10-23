@@ -2,7 +2,8 @@ using LinearAlgebra
 using SparseArrays
 using IterativeSolvers
 using Printf
-using PyPlot
+using Plots
+# using PyPlot
 
 # Unoptimized implementation of PIPG for MPC with LTI dynamics and static state and input cost
 # Supports box and ball constraints on state and input
@@ -38,106 +39,95 @@ struct MPC
     umax::Float64
 
     #Add in support for xT
-    function MPC(A,B,Q,R,T,x0,xT,umax)
+    function MPC(A, B, Q, R, T, x0, xT, umax)
         nx = size(Q)[1]
         nu = size(R)[1]
 
         P = sparse(R)
-        for i=1:T-1
-            P = blockdiag(P,sparse(Q),sparse(R))
+        for i = 1:T-1
+            P = blockdiag(P, sparse(Q), sparse(R))
         end
-        P = blockdiag(P,sparse(Q))
+        P = blockdiag(P, sparse(Q))
 
         H = kron(I(T), [-B I(nx)])
         for k = 1:T-1
             H[(k*nx).+(1:nx), (k*(nx+nu)-nx).+(1:nx)] .= -A
         end
-        HtH = sparse(H'*H)
-
+        HtH = sparse(H' * H)
         η_1 = real(invpowm(P)[1])
         η_2 = real(powm(P)[1])
         η_3 = real(powm(HtH)[1])
 
-        X = zeros(T+1,nx)
-        U = zeros(T,nu)
-        V = zeros(T+2,nx)
-        W = zeros(T+1,nx)
+        println(η_3)
+        X = zeros(T + 1, nx)
+        U = zeros(T, nu)
+        V = zeros(T + 2, nx)
+        W = zeros(T + 1, nx)
 
-        X[1,:] = x0
-        X[T+1,:] = xT
+        X[1, :] = x0
+        # X[T+1,:] = xT
 
-        new(A,B,Q,R,T,X,U,V,W,nx,nu,η_1,η_2,η_3,umax)
+        new(A, B, Q, R, T, X, U, V, W, nx, nu, η_1, η_2, η_3, umax)
     end
 end
-function proj_box(x::Array{Float64,1},l::Array{Float64,1},u::Array{Float64,1})
+function proj_box(x::Array{Float64,1}, l::Array{Float64,1}, u::Array{Float64,1})
     #assert(l less than u)
-    return min.(max.(x,l),u)
+    return min.(max.(x, l), u)
 end
-function proj_ball(x::Array{Float64,1},ρ::Float64)
+function proj_ball(x::Array{Float64,1}, ρ::Float64)
     #assert ρ is positive
     if norm(x) > ρ
-        return (ρ/norm(x))*x
+        return (ρ / norm(x)) * x
     else
         return x
     end
 end
 function solve!(p::MPC)
     kmax = 10000
-    e = zeros(p.T+1)
+    e = zeros(p.T + 1)
     println("iter     objv       |Gx-g|\n")
     println("-----------------------------\n")
 
-    for k=1:kmax
-        α = 2/((k+1)*p.η_1+2*p.η_2)
-        β = (k+1)*p.η_1/(2*p.η_3)
+    for k = 1:kmax
+        α = 2 / ((k + 1) * p.η_1 + 2 * p.η_2)
+        β = (k + 1) * p.η_1 / (2 * p.η_3)
         obj = 0
-        for t=2:p.T+1
-            p.V[t,:] = p.W[t,:] + β * (p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])
-            p.U[t-1,:] = proj_ball(p.U[t-1,:] - α * (p.R * p.U[t-1,:] - p.B' * p.V[t,:]), p.umax)
-            if t != p.T+1
-                p.X[t,:] = proj_box(p.X[t,:] - α * (p.Q*(p.X[t,:]) + p.V[t,:] - p.A' * p.V[t+1,:]),[0.0;-Inf],[Inf,Inf])
-            end
-            p.W[t,:] = p.W[t,:] + β * (p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])
-            e[t] = norm(p.X[t,:] - p.A * p.X[t-1,:] - p.B * p.U[t-1,:])^2
-            obj += p.X[t,:]'*p.Q*p.X[t,:] + p.U[t-1,:]'*p.R*p.U[t-1,:]
+        for t = 2:p.T+1
+            p.V[t, :] = p.W[t, :] + β * (p.X[t, :] - p.A * p.X[t-1, :] - p.B * p.U[t-1, :])
+            p.U[t-1, :] = proj_ball(p.U[t-1, :] - α * (p.R * p.U[t-1, :] - p.B' * p.V[t, :]), p.umax)
+            p.X[t, :] = proj_box(p.X[t, :] - α * (p.Q * (p.X[t, :]) + p.V[t, :] - p.A' * p.V[t+1, :]), [-Inf; -Inf], [Inf, Inf])
+            # if t != p.T + 1
+            #     p.X[t, :] = proj_box(p.X[t, :] - α * (p.Q * (p.X[t, :]) + p.V[t, :] - p.A' * p.V[t+1, :]), [0.0; -Inf], [Inf, Inf])
+            # end
+            p.W[t, :] = p.W[t, :] + β * (p.X[t, :] - p.A * p.X[t-1, :] - p.B * p.U[t-1, :])
+            e[t] = norm(p.X[t, :] - p.A * p.X[t-1, :] - p.B * p.U[t-1, :])^2
+            obj += p.X[t, :]' * p.Q * p.X[t, :] + p.U[t-1, :]' * p.R * p.U[t-1, :]
         end
-        if (mod(k,50)==0)
+        if (mod(k, 50) == 0)
             @printf("%3d   %10.3e  %9.2e\n",
-            k, obj, sqrt(sum(e)))
+                k, obj, sqrt(sum(e)))
         end
     end
 end
 let
-    T = 200  #time horizon
+    T = 50  #time horizon
     N = 2    #number of states
     dt = 0.1
-    x0 = [10;0]
-    xT = [1.0;0]
+    x0 = [10; 0]
+    xT = [1.0; 0]
     umax = 0.1
 
     A = [1 dt; 0 1]
-    B = [0.5*dt^2;dt]
-    B = reshape(B,length(B),1)
-    Q = Diagonal([1.0,1.0])
+    B = [0.5 * dt^2; dt]
+    B = reshape(B, length(B), 1)
+    Q = Diagonal([1.0, 1.0])
     R = Diagonal([1.0])
 
     # Need T-1 A and B matrices for LTV
     # Make Q_packed and R_packed vertically concatanated Q_t and R_t
 
-    mpc = MPC(A,B,Q,R,T,x0,xT,umax)
+    mpc = MPC(A, B, Q, R, T, x0, xT, umax)
 
     solve!(mpc)
-    pygui(true)
-
-    plt.figure()
-    plt.plot(mpc.X[:,1])
-    plt.title("State Trajectory")
-    plt.grid(true)
-
-    plt.figure()
-    plt.plot(mpc.U)
-    plt.title("Input Trajectory")
-    plt.grid(true)
-    plt.show()
 
 end

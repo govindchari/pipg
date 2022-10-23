@@ -4,29 +4,45 @@
 
 int main()
 {
-    size_t T = 2;
+    size_t T = 50;
     size_t nx = 2;
-    size_t nu = 2;
-    MatrixXd Q1(nx, nx);
-    MatrixXd Q2(nx, nx);
-    MatrixXd R0(nu, nu);
-    MatrixXd R1(nu, nu);
-    Q1 << 2, 0, 0, 0;
-    Q2 << 4, 0, 0, 1;
-    R0 << 0.5, 0, 0, 8;
-    R1 << 6, 0, 0, 0.5;
+    size_t nu = 1;
+    double dt = 0.1;
+    double umax = 0.1;
+    MatrixXd A(nx, nx);
+    MatrixXd B(nx, 1);
+    VectorXd Q(nx);
+    VectorXd R(nu);
+    VectorXd x0(nx);
+
+    A << 1, dt, 0, 1;
+    B << 0.5 * dt * dt, dt;
+    Q << 1, 1;
+    R << 1;
+    x0 << 10, 0;
 
     MPC p(T, nx, nu);
 
-    p.addQ(0, Q1);
-    p.addQ(1, Q2);
-    p.addR(0, R0);
-    p.addR(1, R1);
+    for (size_t i = 0; i < T; i++)
+    {
+        if (i > 0)
+            p.addQ(i, Q);
+        p.addR(i, R);
+        p.addA(i, A);
+        p.addB(i, B);
+        p.addBallConstraint(i, 'x', umax);
+    }
+    p.addQ(T, Q);
+    p.addIC(x0);
 
-    // for (size_t i = 0; i < T; i++)
-    // {
-    //     p.addQ(i, Q0);
-    //     p.addR(i, R0);
-    // }
-    p.updateEta2();
+    p.solve();
+
+    auto X = p.getState();
+
+    std::cout << "[";
+    for (auto x : X)
+    {
+        std::cout << x[0] << ", ";
+    }
+    std::cout << "]";
 }

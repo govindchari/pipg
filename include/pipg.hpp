@@ -2,8 +2,10 @@
 #include <vector>
 
 #include "Eigen/Dense"
+#include <Eigen/Eigenvalues>
 #define EIGEN_RUNTIME_NO_MALLOC
 
+#include "constraint.hpp"
 #include "projection.hpp"
 #include "utilities.hpp"
 
@@ -19,8 +21,15 @@ private:
     // Problem Data
     std::vector<MatrixXd> A;
     std::vector<MatrixXd> B;
-    std::vector<MatrixXd> Q;
-    std::vector<MatrixXd> R;
+    std::vector<VectorXd> Q;
+    std::vector<VectorXd> R;
+
+    MatrixXd H;
+
+    // Constraints
+    std::vector<Constraint::Box> box_constraints;
+    std::vector<Constraint::Ball> ball_constraints;
+    std::vector<Constraint::Halfspace> halfspace_constraints;
 
     // Optimization Variables
     std::vector<VectorXd> X;
@@ -46,18 +55,22 @@ private:
     void updateEta2();
     void updateEta3();
 
+    void projectAll();
+
 public:
     void printQR();
     void addA(const size_t t, const MatrixXd Ain);
     void addB(const size_t t, const MatrixXd Bin);
-    void addQ(const size_t t, const MatrixXd Qin);
-    void addR(const size_t t, const MatrixXd Rin);
+    void addQ(const size_t t, const VectorXd Qin);
+    void addR(const size_t t, const VectorXd Rin);
     void addIC(const VectorXd x0);
-    // void addBallConstraint(const size_t t, const enum variable, const double r);
-    // void addBoxConstraint(const size_t t, const enum variable, const VectorXd l, const VectorXd u);
-    // void addHalfspaceConstraint(const size_t t, const enum variable, const VectorXd c, const double a);
+    void addBallConstraint(const size_t t, const unsigned char variable, const double r);
+    void addBoxConstraint(const size_t t, const unsigned char variable, const VectorXd l, const VectorXd u);
+    void addHalfspaceConstraint(const size_t t, const unsigned char variable, const VectorXd c, const double a);
     void solve();
     void solve(bool verbose);
+    std::vector<VectorXd> getState();
+    std::vector<VectorXd> getControl();
 
     MPC(const size_t T_horizon, const size_t nxin, const size_t nuin);
 };

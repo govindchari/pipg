@@ -14,38 +14,38 @@ class MPC
 {
 private:
     // Time Horizon
-    size_t T;
-    size_t nx;
-    size_t nu;
+    size_t _T;
+    size_t _nx;
+    size_t _nu;
 
     // Problem Data
-    std::vector<MatrixXd> A;
-    std::vector<MatrixXd> B;
-    std::vector<VectorXd> Q;
-    std::vector<VectorXd> R;
+    std::vector<MatrixXd> _A;
+    std::vector<MatrixXd> _B;
+    std::vector<VectorXd> _Q;
+    std::vector<VectorXd> _R;
 
-    MatrixXd H;
+    MatrixXd _H;
 
     // Constraints
-    std::vector<Constraint::Box> box_constraints;
-    std::vector<Constraint::Ball> ball_constraints;
-    std::vector<Constraint::Halfspace> halfspace_constraints;
+    std::vector<Constraint::Box> _box_constraints;
+    std::vector<Constraint::Ball> _ball_constraints;
+    std::vector<Constraint::Halfspace> _halfspace_constraints;
 
     // Optimization Variables
-    std::vector<VectorXd> X;
-    std::vector<VectorXd> U;
+    std::vector<VectorXd> _X;
+    std::vector<VectorXd> _U;
 
     // Proportional and Integral Terms
-    std::vector<VectorXd> V;
-    std::vector<VectorXd> W;
+    std::vector<VectorXd> _V;
+    std::vector<VectorXd> _W;
 
     // Eta Parameters
-    double eta1;
-    double eta2;
-    double eta3;
-    bool eta1_outdated;
-    bool eta2_outdated;
-    bool eta3_outdated;
+    double _eta1;
+    double _eta2;
+    double _eta3;
+    bool _eta1_outdated;
+    bool _eta2_outdated;
+    bool _eta3_outdated;
 
     // Workspace
     WORKSPACE ws;

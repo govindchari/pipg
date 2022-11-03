@@ -186,6 +186,7 @@ void MPC::updateEta3()
 void MPC::addA(const size_t t, const MatrixXd A)
 {
     assert(t >= 0 && t < _T);
+    assert(std::make_unsigned_t<int>(A.rows()) == _nx && std::make_unsigned_t<int>(A.cols()) == _nx);
     _A[t] = A;
     if (t != 0)
     {
@@ -196,6 +197,7 @@ void MPC::addA(const size_t t, const MatrixXd A)
 void MPC::addB(const size_t t, const MatrixXd B)
 {
     assert(t >= 0 && t < _T);
+    assert(std::make_unsigned_t<int>(B.rows()) == _nx && std::make_unsigned_t<int>(B.cols()) == _nu);
     _B[t] = B;
     _H.block(t * _nx, t * (_nu + _nx), _nx, _nu) = -B;
     _eta3_outdated = true;
@@ -210,6 +212,7 @@ void MPC::addQ(const size_t t, const VectorXd Q)
 void MPC::addR(const size_t t, const VectorXd R)
 {
     assert(t >= 0 && t < _T);
+    assert(std::make_unsigned_t<int>(R.rows()) == _nu && std::make_unsigned_t<int>(R.cols()) == _nu);
     _R[t] = R;
     _eta1_outdated = true;
     _eta2_outdated = true;
@@ -329,10 +332,10 @@ void MPC::solve(bool verbose)
     VectorXd e = VectorXd::Zero(_T + 1);
     printf("iter     objv       |Gx-g|\n");
     printf("-----------------------------\n");
-    for (size_t k = 1; k < 10001; k++)
+    while (!_tol.stop)
     {
-        auto a = 2 / ((k + 1) * _eta1 + 2 * _eta2);
-        auto b = (k + 1) * _eta1 / (2 * _eta3);
+        auto a = 2 / ((_tol.k + 1) * _eta1 + 2 * _eta2);
+        auto b = (_tol.k + 1) * _eta1 / (2 * _eta3);
         double obj = 0;
         for (size_t t = 1; t < _T + 1; t++)
         {
@@ -346,12 +349,17 @@ void MPC::solve(bool verbose)
             //     X[t] = X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]);
             // }
             _W[t] = _W[t] + b * (_X[t] - _A[t - 1] * _X[t - 1] - _B[t - 1] * _U[t - 1]);
-            e[t] = (_X[t] - _A[t - 1] * _X[t - 1] - _B[t - 1] * _U[t - 1]).squaredNorm();
-            obj += ((_X[t].array() * _Q[t - 1].array() * _X[t].array()).sum() + (_U[t - 1].array() * _R[t - 1].array() * _U[t - 1].array()).sum());
+            if (_tol.k % 50 == 0)
+            {
+                e[t] = (_X[t] - _A[t - 1] * _X[t - 1] - _B[t - 1] * _U[t - 1]).lpNorm<Eigen::Infinity>();
+                obj += ((_X[t].array() * _Q[t - 1].array() * _X[t].array()).sum() + (_U[t - 1].array() * _R[t - 1].array() * _U[t - 1].array()).sum());
+            }
         }
-        if (k % 50 == 0)
+        if (_tol.k % 50 == 0)
         {
-            printf("%zu   %10.3e  %9.2e\n", k, obj, sqrt(e.sum()));
+            printf("%zu   %10.3e  %9.2e\n", _tol.k, obj, e.lpNorm<Eigen::Infinity>());
+            _tol.stop = e.lpNorm<Eigen::Infinity>() < _tol.eq_tol || _tol.k > _tol.max_iter;
         }
+        _tol.k++;
     }
 }

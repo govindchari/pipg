@@ -8,11 +8,19 @@ struct TOLERANCE
 {
     double pow_tol; // Relative error tolerance for power method iteration
     size_t pow_max_iter;
+    size_t max_iter;
+    size_t k;
+    double eq_tol;
+    bool stop;
     TOLERANCE()
     {
         // Angle between two iterations of power method must be within acos(1-pow_tol) degrees
         pow_tol = 1e-10;
         pow_max_iter = 100;
+        max_iter = 20000;
+        eq_tol = 1e-3;
+        stop = false;
+        k = 1;
     };
 };
 struct WORKSPACE

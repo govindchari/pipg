@@ -15,6 +15,10 @@ MPC::MPC(const size_t T, const size_t nx, const size_t nu)
     _V.resize(_T + 2); // Of length T+2 because V_{T+1} = 0 (dummy variable for alg to work)
     _W.resize(_T + 1);
 
+    _box_constraints.resize(_T + 1);
+    _ball_constraints.resize(_T + 1);
+    _halfspace_constraints.resize(_T + 1);
+
     std::fill(_A.begin(), _A.end(), MatrixXd::Zero(_nx, _nx));
     std::fill(_B.begin(), _B.end(), MatrixXd::Zero(_nx, _nu));
     std::fill(_Q.begin(), _Q.end(), VectorXd::Zero(_nx));
@@ -179,7 +183,6 @@ void MPC::updateEta3()
     // Use power method to get max eig
     auto HtH = (_H.transpose() * _H);
     auto eig = HtH.eigenvalues();
-    std::cout << eig[0].real() << std::endl;
     _eta3 = eig[0].real();
     _eta3_outdated = false;
 }
@@ -226,29 +229,37 @@ void MPC::addBoxConstraint(const size_t t, const char variable, const VectorXd l
 {
     assert(variable == 'x' || variable == 'u');
     assert(l.rows() == u.rows());
+    assert(l.cwiseMin(u) == l);
     if (variable == 'x')
     {
         assert(_nx == std::make_unsigned_t<int>(l.rows()));
         assert(_nx == std::make_unsigned_t<int>(u.rows()));
+        Constraint::Box con(l, u, variable);
+        _box_constraints[t].push_back(con);
     }
     if (variable == 'u')
     {
         assert(_nu == std::make_unsigned_t<int>(l.rows()));
         assert(_nu == std::make_unsigned_t<int>(u.rows()));
+        Constraint::Box con(l, u, variable);
+        _box_constraints[t + 1].push_back(con);
     }
-    assert(l.cwiseMin(u) == l);
-
-    Constraint::Box con(l, u, t, variable);
-    _box_constraints.push_back(con);
 }
 void MPC::addBallConstraint(const size_t t, const char variable, const double r)
 {
     assert(r > 0);
 
     assert(variable == 'x' || variable == 'u');
-
-    Constraint::Ball con(r, t, variable);
-    _ball_constraints.push_back(con);
+    if (variable == 'x')
+    {
+        Constraint::Ball con(r, variable);
+        _ball_constraints[t].push_back(con);
+    }
+    if (variable == 'u')
+    {
+        Constraint::Ball con(r, variable);
+        _ball_constraints[t + 1].push_back(con);
+    }
 }
 void MPC::addHalfspaceConstraint(const size_t t, const char variable, const VectorXd c, const double a)
 {
@@ -257,48 +268,49 @@ void MPC::addHalfspaceConstraint(const size_t t, const char variable, const Vect
     if (variable == 'x')
     {
         assert(_nx == std::make_unsigned_t<int>(c.rows()));
+        Constraint::Halfspace con(c, a, variable);
+        _halfspace_constraints[t].push_back(con);
     }
     if (variable == 'u')
     {
         assert(_nu == std::make_unsigned_t<int>(c.rows()));
+        Constraint::Halfspace con(c, a, variable);
+        _halfspace_constraints[t + 1].push_back(con);
     }
-
-    Constraint::Halfspace con(c, a, t, variable);
-    _halfspace_constraints.push_back(con);
 }
-void MPC::projectAll()
+void MPC::project(const size_t t)
 {
-    for (auto con : _box_constraints)
+    for (auto con : _box_constraints[t])
     {
-        if (con.var == 'x')
+        if (con._var == 'x')
         {
-            project_box(_X[con.t], con.l, con.u);
+            project_box(_X[t], con._l, con._u);
         }
-        else if (con.var == 'u')
+        else if (con._var == 'u')
         {
-            project_box(_U[con.t], con.l, con.u);
+            project_box(_U[t - 1], con._l, con._u);
         }
     }
-    for (auto con : _ball_constraints)
+    for (auto con : _ball_constraints[t])
     {
-        if (con.var == 'x')
+        if (con._var == 'x')
         {
-            project_ball(_X[con.t], con.r);
+            project_ball(_X[t], con._r);
         }
-        else if (con.var == 'u')
+        else if (con._var == 'u')
         {
-            project_ball(_U[con.t], con.r);
+            project_ball(_U[t - 1], con._r);
         }
     }
-    for (auto con : _halfspace_constraints)
+    for (auto con : _halfspace_constraints[t])
     {
-        if (con.var == 'x')
+        if (con._var == 'x')
         {
-            project_halfspace(_X[con.t], con.c, con.a);
+            project_halfspace(_X[t], con._c, con._a);
         }
-        else if (con.var == 'u')
+        else if (con._var == 'u')
         {
-            project_halfspace(_U[con.t], con.c, con.a);
+            project_halfspace(_U[t - 1], con._c, con._a);
         }
     }
 }
@@ -330,8 +342,11 @@ void MPC::solve(bool verbose)
     }
 
     VectorXd e = VectorXd::Zero(_T + 1);
-    printf("iter     objv       |Gx-g|\n");
-    printf("-----------------------------\n");
+    if (verbose)
+    {
+        printf("iter     objv       |Gx-g|\n");
+        printf("-----------------------------\n");
+    }
     while (!_tol.stop)
     {
         auto a = 2 / ((_tol.k + 1) * _eta1 + 2 * _eta2);
@@ -342,7 +357,7 @@ void MPC::solve(bool verbose)
             _V[t] = _W[t] + b * (_X[t] - _A[t - 1] * _X[t - 1] - _B[t - 1] * _U[t - 1]);
             _U[t - 1] = _U[t - 1] - a * (_R[t - 1].asDiagonal() * _U[t - 1] - _B[t - 1].transpose() * _V[t]);
             _X[t] = _X[t] - a * (_Q[t - 1].asDiagonal() * _X[t] + _V[t] - _A[t].transpose() * _V[t + 1]);
-            projectAll();
+            project(t);
             // Only for TC
             // if (t != T + 1)
             // {
@@ -357,7 +372,8 @@ void MPC::solve(bool verbose)
         }
         if (_tol.k % 50 == 0)
         {
-            printf("%zu   %10.3e  %9.2e\n", _tol.k, obj, e.lpNorm<Eigen::Infinity>());
+            if (verbose)
+                printf("%zu   %10.3e  %9.2e\n", _tol.k, obj, e.lpNorm<Eigen::Infinity>());
             _tol.stop = e.lpNorm<Eigen::Infinity>() < _tol.eq_tol || _tol.k > _tol.max_iter;
         }
         _tol.k++;

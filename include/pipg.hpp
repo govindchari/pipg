@@ -27,9 +27,9 @@ private:
     MatrixXd _H;
 
     // Constraints
-    std::vector<Constraint::Box> _box_constraints;
-    std::vector<Constraint::Ball> _ball_constraints;
-    std::vector<Constraint::Halfspace> _halfspace_constraints;
+    std::vector<std::vector<Constraint::Box>> _box_constraints;
+    std::vector<std::vector<Constraint::Ball>> _ball_constraints;
+    std::vector<std::vector<Constraint::Halfspace>> _halfspace_constraints;
 
     // Optimization Variables
     std::vector<VectorXd> _X;
@@ -54,8 +54,7 @@ private:
     void updateEta1();
     void updateEta2();
     void updateEta3();
-
-    void projectAll();
+    void project(const size_t t);
 
 public:
     void printQR();

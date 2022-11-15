@@ -10,28 +10,25 @@ namespace Constraint
 {
     struct Box
     {
-        VectorXd l;
-        VectorXd u;
-        size_t t;
-        char var;
-        Box(const VectorXd lin, const VectorXd uin, const size_t tin, const char varin) : l(lin), u(uin), t(tin), var(varin) {}
+        VectorXd _l;
+        VectorXd _u;
+        char _var;
+        Box(const VectorXd l, const VectorXd u, const char var) : _l(l), _u(u), _var(var) {}
     };
 
     struct Ball
     {
-        double r;
-        size_t t;
-        char var;
-        Ball(const double rin, const size_t tin, const char varin) : r(rin), t(tin), var(varin) {}
+        double _r;
+        char _var;
+        Ball(const double r, const char var) : _r(r), _var(var) {}
     };
 
     struct Halfspace
     {
-        VectorXd c;
-        double a;
-        size_t t;
-        char var;
-        Halfspace(const VectorXd cin, const double ain, const size_t tin, const char varin) : c(cin), a(ain), t(tin), var(varin) {}
+        VectorXd _c;
+        double _a;
+        char _var;
+        Halfspace(const VectorXd c, const double a, const char var) : _c(c), _a(a), _var(var) {}
     };
 
 }

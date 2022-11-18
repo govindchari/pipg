@@ -12,7 +12,7 @@ target_include_directories(PIPG PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(PIPG PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/eigen)
 
 #Testing
-elseif (ENABLE_TESTING)
+if (ENABLE_TESTING)
     message("PIPG Testing Enabled")
     include_directories(tests)
     add_executable(run_tests tests/run_tests.cpp)

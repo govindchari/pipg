@@ -18,7 +18,7 @@ struct TOLERANCE
         pow_tol = 1e-10;
         pow_max_iter = 100;
         max_iter = 20000;
-        eq_tol = 1e-3;
+        eq_tol = 1e-6;
         stop = false;
         k = 1;
     };

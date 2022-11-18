@@ -10,7 +10,7 @@ int main()
     double dt = 0.1;
     double umax = 0.1;
     VectorXd uvec(1);
-    uvec << 0.1;
+    uvec << umax;
     MatrixXd A(nx, nx);
     MatrixXd B(nx, 1);
     VectorXd Q(nx);
@@ -37,7 +37,7 @@ int main()
     p.addQ(T, Q);
     p.addIC(x0);
 
-    p.solve();
+    p.solve(false);
 
     auto X = p.getState();
     auto U = p.getControl();

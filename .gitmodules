@@ -1,6 +1,3 @@
 [submodule "lib/eigen"]
 	path = lib/eigen
 	url = https://gitlab.com/libeigen/eigen.git
-[submodule "test/Epigraph"]
-	path = test/Epigraph
-	url = https://github.com/EmbersArc/Epigraph.git

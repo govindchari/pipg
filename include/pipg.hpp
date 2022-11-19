@@ -35,9 +35,14 @@ private:
     std::vector<VectorXd> _X;
     std::vector<VectorXd> _U;
 
-    // Proportional and Integral Terms
+    // Integral and Term Dual Variable
     std::vector<VectorXd> _V;
     std::vector<VectorXd> _W;
+
+    // Previous Primal and Dual iterates (for stopping)
+    std::vector<VectorXd> _Xprev;
+    std::vector<VectorXd> _Uprev;
+    std::vector<VectorXd> _Wprev;
 
     // Eta Parameters
     double _eta1;

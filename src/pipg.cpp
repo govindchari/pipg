@@ -364,17 +364,57 @@ void MPC::solve(bool verbose)
             //     X[t] = X[t] - a * (Q[t] * X[t] + V[t] - A[t].transpose() * V[t + 1]);
             // }
             _W[t] = _W[t] + b * (_X[t] - _A[t - 1] * _X[t - 1] - _B[t - 1] * _U[t - 1]);
-            if (_tol.k % 50 == 0)
+            if (_tol.k % _tol.stop_freq == 0)
             {
                 e[t] = (_X[t] - _A[t - 1] * _X[t - 1] - _B[t - 1] * _U[t - 1]).lpNorm<Eigen::Infinity>();
                 obj += ((_X[t].array() * _Q[t - 1].array() * _X[t].array()).sum() + (_U[t - 1].array() * _R[t - 1].array() * _U[t - 1].array()).sum());
             }
         }
-        if (_tol.k % 50 == 0)
+
+        if ((_tol.k + 1) % _tol.stop_freq == 0)
         {
+            _Xprev = _X;
+            _Uprev = _U;
+            _Wprev = _W;
+        }
+
+        if (_tol.k % _tol.stop_freq == 0)
+        {
+
+            double primal_diff_inf_norm = 0.0;
+            double primal_inf_norm = 0.0;
+            double primal_prev_inf_norm = 0.0;
+
+            double dual_diff_inf_norm = 0.0;
+            double dual_inf_norm = 0.0;
+            double dual_prev_inf_norm = 0.0;
+            for (int i = 0; i < _X.size(); i++)
+            {
+                primal_diff_inf_norm = std::max(primal_diff_inf_norm, (_Xprev[i] - _X[i]).lpNorm<Eigen::Infinity>());
+                primal_inf_norm = std::max(primal_inf_norm, _X[i].lpNorm<Eigen::Infinity>());
+                primal_prev_inf_norm = std::max(primal_prev_inf_norm, _Xprev[i].lpNorm<Eigen::Infinity>());
+            }
+
+            for (int i = 0; i < _U.size(); i++)
+            {
+                primal_diff_inf_norm = std::max(primal_diff_inf_norm, (_Uprev[i] - _U[i]).lpNorm<Eigen::Infinity>());
+                primal_inf_norm = std::max(primal_inf_norm, _U[i].lpNorm<Eigen::Infinity>());
+                primal_prev_inf_norm = std::max(primal_prev_inf_norm, _Uprev[i].lpNorm<Eigen::Infinity>());
+            }
+            for (int i = 0; i < _W.size(); i++)
+            {
+                dual_diff_inf_norm = std::max(dual_diff_inf_norm, (_Wprev[i] - _W[i]).lpNorm<Eigen::Infinity>());
+                dual_inf_norm = std::max(dual_inf_norm, _W[i].lpNorm<Eigen::Infinity>());
+                dual_prev_inf_norm = std::max(dual_prev_inf_norm, _Wprev[i].lpNorm<Eigen::Infinity>());
+            }
+
             if (verbose)
+            {
                 printf("%zu   %10.3e  %9.2e\n", _tol.k, obj, e.lpNorm<Eigen::Infinity>());
-            _tol.stop = e.lpNorm<Eigen::Infinity>() < _tol.eq_tol || _tol.k > _tol.max_iter;
+            }
+            bool primal_stop = primal_diff_inf_norm <= _tol.eps_abs + _tol.eps_rel * std::max(primal_inf_norm, primal_prev_inf_norm);
+            bool dual_stop = dual_diff_inf_norm <= _tol.eps_abs + _tol.eps_rel * std::max(dual_inf_norm, dual_prev_inf_norm);
+            _tol.stop = (primal_stop && dual_stop) || _tol.k > _tol.max_iter;
         }
         _tol.k++;
     }

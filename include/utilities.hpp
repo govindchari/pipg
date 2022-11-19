@@ -10,7 +10,9 @@ struct TOLERANCE
     size_t pow_max_iter;
     size_t max_iter;
     size_t k;
-    double eq_tol;
+    size_t stop_freq;
+    double eps_abs;
+    double eps_rel;
     bool stop;
     TOLERANCE()
     {
@@ -18,7 +20,9 @@ struct TOLERANCE
         pow_tol = 1e-10;
         pow_max_iter = 100;
         max_iter = 20000;
-        eq_tol = 1e-6;
+        stop_freq = 50;
+        eps_abs = 1e-6;
+        eps_rel = 1e-6;
         stop = false;
         k = 1;
     };

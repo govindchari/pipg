@@ -54,21 +54,6 @@ MPC::MPC(const size_t T, const size_t nx, const size_t nu)
     WORKSPACE ws(nx, nu, T);
     TOLERANCE tol;
 }
-void MPC::printQR()
-{
-    std::cout << "Q: " << std::endl;
-    for (auto x : _Q)
-    {
-        std::cout << x << std::endl;
-    }
-    std::cout << "R: " << std::endl;
-    for (auto x : _R)
-    {
-        std::cout << x << std::endl;
-    }
-    std::cout << _eta1 << std::endl;
-    std::cout << _eta2 << std::endl;
-}
 void MPC::updateEta1()
 {
     // auto Xc = X;

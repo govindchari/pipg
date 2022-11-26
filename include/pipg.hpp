@@ -70,7 +70,6 @@ private:
     void project(const size_t t);
 
 public:
-    void printQR();
     void addA(const size_t t, const MatrixXd Ain);
     void addB(const size_t t, const MatrixXd Bin);
     void addQ(const size_t t, const VectorXd Qin);

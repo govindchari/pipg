@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <unordered_map>
 
 #include "Eigen/Dense"
 #include <Eigen/Eigenvalues>
@@ -24,6 +25,7 @@ private:
     std::vector<VectorXd> _Q;
     std::vector<VectorXd> _R;
 
+    // Equality constraint matrix
     MatrixXd _H;
 
     // Constraints
@@ -31,15 +33,19 @@ private:
     std::vector<std::vector<Constraint::Ball>> _ball_constraints;
     std::vector<std::vector<Constraint::Halfspace>> _halfspace_constraints;
 
+    // State and control slices
+    std::unordered_map<char, std::pair<size_t, size_t>> _state_slice;
+    std::unordered_map<char, std::pair<size_t, size_t>> _control_slice;
+
     // Optimization Variables
     std::vector<VectorXd> _X;
     std::vector<VectorXd> _U;
 
-    // Integral and Term Dual Variable
+    // Integral Term and Dual Variable
     std::vector<VectorXd> _V;
     std::vector<VectorXd> _W;
 
-    // Previous Primal and Dual iterates (for stopping)
+    // Previous Primal and Dual iterates
     std::vector<VectorXd> _Xprev;
     std::vector<VectorXd> _Uprev;
     std::vector<VectorXd> _Wprev;
@@ -59,6 +65,8 @@ private:
     void updateEta1();
     void updateEta2();
     void updateEta3();
+    bool nonOverlappingSlice(const char variable, const size_t startIndex, const size_t endIndex);
+    bool validSplit();
     void project(const size_t t);
 
 public:
@@ -68,8 +76,13 @@ public:
     void addQ(const size_t t, const VectorXd Qin);
     void addR(const size_t t, const VectorXd Rin);
     void addIC(const VectorXd x0);
+    void splitState(const char label, const size_t startIndex, const size_t endIndex);
+    void splitControl(const char label, const size_t startIndex, const size_t endIndex);
+    void addBallConstraint(const size_t t, const char variable, const char label, const double r);
     void addBallConstraint(const size_t t, const char variable, const double r);
+    void addBoxConstraint(const size_t t, const char variable, const char label, const VectorXd l, const VectorXd u);
     void addBoxConstraint(const size_t t, const char variable, const VectorXd l, const VectorXd u);
+    void addHalfspaceConstraint(const size_t t, const char variable, const char label, const VectorXd c, const double a);
     void addHalfspaceConstraint(const size_t t, const char variable, const VectorXd c, const double a);
     void solve();
     void solve(bool verbose);

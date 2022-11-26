@@ -3,3 +3,4 @@
 
 // Tests
 #include "test_1D_mpc.hpp"
+#include "test_split.hpp"

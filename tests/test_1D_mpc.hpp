@@ -51,7 +51,7 @@ TEST_CASE("1D Point Mass MPC")
     p.addIC(x0);
 
     auto start = high_resolution_clock::now();
-    p.solve(false);
+    p.solve(true);
     auto stop = high_resolution_clock::now();
     auto time = duration_cast<microseconds>(stop - start);
     auto X = p.getState();

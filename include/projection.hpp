@@ -4,23 +4,26 @@
 
 using namespace Eigen;
 
-inline void project_box(VectorXd &x, const VectorXd l, const VectorXd u)
+inline void project_box(VectorXd &x, const VectorXd l, const VectorXd u, size_t startIndex, size_t endIndex)
 {
-    x = x.cwiseMin(u).cwiseMax(l);
+    auto idx = seq(startIndex, endIndex);
+    x(idx) = x(idx).cwiseMin(u).cwiseMax(l);
 }
 
-inline void project_ball(VectorXd &x, const double r)
+inline void project_ball(VectorXd &x, const double r, size_t startIndex, size_t endIndex)
 {
-    if (x.norm() > r)
+    auto idx = seq(startIndex, endIndex);
+    if (x(idx).norm() > r)
     {
-        x = (r / x.norm()) * x;
+        x(idx) = (r / x(idx).norm()) * x(idx);
     }
 }
 
-inline void project_halfspace(VectorXd &x, const VectorXd c, const double a)
+inline void project_halfspace(VectorXd &x, const VectorXd c, const double a, size_t startIndex, size_t endIndex)
 {
-    if (c.dot(x) > a)
+    auto idx = seq(startIndex, endIndex);
+    if (c.dot(x(idx)) > a)
     {
-        x = x - (c.dot(x) - a) * (c / (c.norm() * c.norm()));
+        x(idx) = x(idx) - (c.dot(x(idx)) - a) * (c / (c.norm() * c.norm()));
     }
 }

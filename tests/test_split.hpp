@@ -63,7 +63,7 @@ TEST_CASE("Split Test")
     p.addIC(x0);
 
     auto start = high_resolution_clock::now();
-    p.solve(true);
+    p.solve(false);
     auto stop = high_resolution_clock::now();
     auto time = duration_cast<microseconds>(stop - start);
     auto X = p.getState();
@@ -111,7 +111,7 @@ TEST_CASE("Split Test")
         -1.60585141e-13, -4.82686072e-02;
 
     // Speed Report
-    int osqp_time = 135263;
+    int osqp_time = 1296;
     std::cout << "===========================Speed Results=============================" << std::endl;
     std::cout << "OSQP is " << time.count() / osqp_time << " times faster" << std::endl;
     std::cout << "PIPG Run Time (us):" << std::endl;

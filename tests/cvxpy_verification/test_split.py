@@ -39,12 +39,10 @@ for _ in range(10):
     objective += quad_form(x[:,T], Q)
     prob = Problem(Minimize(objective), constraints)
 
-    start = time.time_ns()
     prob.solve(solver=OSQP, warm_start=False)
-    stop = time.time_ns()
-    times.append(int((stop-start)/1000))
+    times.append(int((prob.solver_stats.solve_time)*1e6))
 
 print("Solve Time: " + str(int(sum(times)/len(times))) + " us")
-pprint.pprint(x[0,:].value)
-pprint.pprint(x[1,:].value)
-pprint.pprint(u[0,:].value)
+# pprint.pprint(x[0,:].value)
+# pprint.pprint(x[1,:].value)
+# pprint.pprint(u[0,:].value)

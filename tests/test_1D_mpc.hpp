@@ -51,7 +51,7 @@ TEST_CASE("1D Point Mass MPC")
     p.addIC(x0);
 
     auto start = high_resolution_clock::now();
-    p.solve(true);
+    p.solve(false);
     auto stop = high_resolution_clock::now();
     auto time = duration_cast<microseconds>(stop - start);
     auto X = p.getState();
@@ -96,7 +96,7 @@ TEST_CASE("1D Point Mass MPC")
         -0.1, -0.1, -0.1, -0.07775552, 0.00497354;
 
     // Speed Report
-    int osqp_time = 135263;
+    int osqp_time = 1961;
     std::cout << "===========================Speed Results=============================" << std::endl;
     std::cout << "OSQP is " << time.count() / osqp_time << " times faster" << std::endl;
     std::cout << "PIPG Run Time (us):" << std::endl;
